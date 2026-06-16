@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">StheshMusic</string>
+    <string name="title_activity_main">StheshMusic</string>
+    <string name="package_name">com.stheshhackers.music</string>
+    <string name="custom_url_scheme">com.stheshhackers.music</string>
+</resources>
