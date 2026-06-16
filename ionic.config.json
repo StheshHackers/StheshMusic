@@ -1,0 +1,7 @@
+{
+  "name": "StheshMusic",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
