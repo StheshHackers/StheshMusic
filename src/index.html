@@ -72,10 +72,10 @@
       font-size: 0.85rem;
     }
     #local-tracks-container { 
-      height: calc(100vh - 290px) !important; 
+      height: calc(100vh - 340px) !important; 
       overflow-y: auto !important; 
       padding: 10px 15px !important; 
-      margin-bottom: 120px;
+      margin-bottom: 160px;
       -webkit-overflow-scrolling: touch !important; 
     }
     #local-tracks-container::-webkit-scrollbar { 
@@ -97,21 +97,33 @@
     .track-item:active { 
       background: #282828 !important; 
     }
+    .track-item.active-playing {
+      border-color: #1db954 !important;
+      background: #202c24 !important;
+    }
     .track-item .track-meta { 
       flex-grow: 1; 
       overflow: hidden; 
       text-overflow: ellipsis; 
       white-space: nowrap; 
       color: #ffffff !important; 
-      font-size: 0.95rem; 
+      font-size: 0.95rem; grading: border-box;
+    }
+    .track-item.active-playing .track-meta {
+      color: #1db954 !important;
+      font-weight: 600;
     }
     .track-item .track-tag { 
-      color: #1db954 !important; 
+      color: #b3b3b3 !important; 
       font-size: 0.75rem; 
       margin-left: 10px; 
-      border: 1px solid #1db954;
+      border: 1px solid #404040;
       padding: 2px 6px;
       border-radius: 4px;
+    }
+    .track-item.active-playing .track-tag {
+      color: #1db954 !important;
+      border-color: #1db954 !important;
     }
     .player-controls-box { 
       position: fixed; 
@@ -120,9 +132,21 @@
       right: 0; 
       background: #181818 !important; 
       border-top: 1px solid #282828; 
-      padding: 15px 20px 30px 20px; 
+      padding: 10px 20px 30px 20px; 
       box-shadow: 0 -5px 15px rgba(0,0,0,0.6); 
       z-index: 999; 
+    }
+    .now-playing-banner {
+      text-align: center;
+      padding: 4px 10px 10px 10px;
+      font-size: 0.9rem;
+      color: #1db954;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-bottom: 1px solid #282828;
+      margin-bottom: 10px;
     }
     .playback-bar {
       display: flex;
@@ -183,6 +207,7 @@
     <audio id="audio-engine" preload="auto"></audio>
 
     <div class="player-controls-box">
+        <div class="now-playing-banner" id="current-track-display">No Track Playing</div>
         <div class="playback-bar">
             <span id="time-current">0:00</span>
             <span id="time-total">0:00</span>
@@ -311,6 +336,7 @@
         const timeTotal = document.getElementById('time-total');
         const storageGrabber = document.getElementById('storage-grabber');
         const triggerImport = document.getElementById('trigger-import');
+        const currentTrackDisplay = document.getElementById('current-track-display');
 
         let allTracks = [];
         let currentIndex = -1;
@@ -319,7 +345,7 @@
             allTracks.push({
                 name: filename.replace(/\.[^/.]+$/, ""),
                 src: 'http://localhost/assets/' + encodeURIComponent(filename),
-                tag: 'Offline App Asset'
+                tag: 'App Asset'
             });
         });
 
@@ -330,6 +356,9 @@
                 const origIndex = allTracks.findIndex(t => t.src === track.src);
                 const li = document.createElement('li');
                 li.className = 'track-item';
+                if (origIndex === currentIndex) {
+                    li.className += ' active-playing';
+                }
                 li.innerHTML = `<div class="track-meta">${track.name}</div><div class="track-tag">${track.tag}</div>`;
                 li.addEventListener('click', () => playTrack(origIndex));
                 playlistElement.appendChild(li);
@@ -339,9 +368,15 @@
         function playTrack(index) {
             if (index < 0 || index >= allTracks.length) return;
             currentIndex = index;
+            currentTrackDisplay.textContent = allTracks[currentIndex].name;
             audio.src = allTracks[currentIndex].src;
             audio.play().catch(e => console.log("Playback interaction lock: ", e));
             svgPlayAction.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+            
+            // Re-render to update the visual highlighting on the items
+            const query = localFilter.value.toLowerCase();
+            const filtered = allTracks.filter(t => t.name.toLowerCase().includes(query));
+            renderPlaylist(filtered);
         }
 
         ctrlPlayPause.addEventListener('click', () => {
@@ -400,7 +435,7 @@
                 allTracks.unshift({
                     name: file.name.replace(/\.[^/.]+$/, ""),
                     src: objectUrl,
-                    tag: 'Storage File'
+                    tag: 'Storage'
                 });
             });
             renderPlaylist(allTracks);
