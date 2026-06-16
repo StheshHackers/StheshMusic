@@ -19,6 +19,10 @@
       text-align: center; 
       border-bottom: 1px solid #282828; 
     }
+    .app-logo { 
+      max-width: 60px; 
+      margin-bottom: 10px; 
+    }
     h1 { 
       font-size: 1.6rem !important; 
       color: #1db954 !important; 
@@ -26,11 +30,14 @@
       margin: 5px 0 0 0; 
     }
     .search-box-container { 
-      padding: 15px; 
+      padding: 15px 15px 5px 15px; 
       background: #121212;
+      display: flex;
+      gap: 10px;
+      align-items: center;
     }
     #local-filter { 
-      width: 100%; 
+      flex-grow: 1;
       background: #282828 !important; 
       border: 1px solid transparent !important; 
       color: #ffffff !important; 
@@ -43,8 +50,24 @@
       border-color: #1db954 !important; 
       outline: none; 
     }
+    .import-btn {
+      background: #282828;
+      border: none;
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .import-btn svg {
+      fill: #1db954 !important;
+      width: 24px;
+      height: 24px;
+    }
     .playlist-meta {
-      padding: 0 20px;
+      padding: 5px 20px;
       color: #b3b3b3;
       font-size: 0.85rem;
     }
@@ -82,10 +105,13 @@
       color: #ffffff !important; 
       font-size: 0.95rem; 
     }
-    .track-item .track-duration { 
-      color: #b3b3b3 !important; 
-      font-size: 0.85rem; 
+    .track-item .track-tag { 
+      color: #1db954 !important; 
+      font-size: 0.75rem; 
       margin-left: 10px; 
+      border: 1px solid #1db954;
+      padding: 2px 6px;
+      border-radius: 4px;
     }
     .player-controls-box { 
       position: fixed; 
@@ -136,12 +162,16 @@
 <body>
 
     <div class="app-header">
-        <img src="assets/icon/favicon.png" class="app-logo" onerror="this.style.display='none';">
+        <img src="http://localhost/assets/icon/favicon.png" class="app-logo" onerror="this.src='assets/icon/favicon.png';">
         <h1>StheshMusic</h1>
     </div>
 
     <div class="search-box-container">
         <input type="text" id="local-filter" placeholder="Search tracks...">
+        <input type="file" id="storage-grabber" multiple accept="audio/*" style="display: none;">
+        <button class="import-btn" id="trigger-import" title="Import Audio">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        </button>
     </div>
     
     <div class="playlist-meta"><span id="local-count">0</span> tracks total loaded</div>
@@ -279,6 +309,8 @@
         const svgPlayAction = document.getElementById('svg-play-action');
         const timeCurrent = document.getElementById('time-current');
         const timeTotal = document.getElementById('time-total');
+        const storageGrabber = document.getElementById('storage-grabber');
+        const triggerImport = document.getElementById('trigger-import');
 
         let allTracks = [];
         let currentIndex = -1;
@@ -286,7 +318,8 @@
         internalTracks.forEach((filename) => {
             allTracks.push({
                 name: filename.replace(/\.[^/.]+$/, ""),
-                src: 'http://localhost/assets/' + encodeURIComponent(filename)
+                src: 'http://localhost/assets/' + encodeURIComponent(filename),
+                tag: 'Offline App Asset'
             });
         });
 
@@ -297,7 +330,7 @@
                 const origIndex = allTracks.findIndex(t => t.src === track.src);
                 const li = document.createElement('li');
                 li.className = 'track-item';
-                li.innerHTML = `<div class="track-meta">${track.name}</div><div class="track-duration">••:••</div>`;
+                li.innerHTML = `<div class="track-meta">${track.name}</div><div class="track-tag">${track.tag}</div>`;
                 li.addEventListener('click', () => playTrack(origIndex));
                 playlistElement.appendChild(li);
             });
@@ -354,6 +387,24 @@
             const query = e.target.value.toLowerCase();
             const filtered = allTracks.filter(t => t.name.toLowerCase().includes(query));
             renderPlaylist(filtered);
+        });
+
+        triggerImport.addEventListener('click', () => {
+            storageGrabber.click();
+        });
+
+        storageGrabber.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            files.forEach((file) => {
+                const objectUrl = URL.createObjectURL(file);
+                allTracks.unshift({
+                    name: file.name.replace(/\.[^/.]+$/, ""),
+                    src: objectUrl,
+                    tag: 'Storage File'
+                });
+            });
+            renderPlaylist(allTracks);
+            if (files.length > 0) playTrack(0);
         });
 
         renderPlaylist(allTracks);
