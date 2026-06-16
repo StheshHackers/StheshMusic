@@ -1,14 +1,362 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>StheshMusic Player</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StheshMusic Player</title>
+  <style>
+    body { 
+      background: #121212 !important; 
+      color: #ffffff !important; 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important; 
+      margin: 0; 
+      padding: 0; 
+      user-select: none;
+    }
+    .app-header { 
+      background: linear-gradient(to bottom, #1e1e1e, #121212); 
+      padding: 20px; 
+      text-align: center; 
+      border-bottom: 1px solid #282828; 
+    }
+    h1 { 
+      font-size: 1.6rem !important; 
+      color: #1db954 !important; 
+      font-weight: 700; 
+      margin: 5px 0 0 0; 
+    }
+    .search-box-container { 
+      padding: 15px; 
+      background: #121212;
+    }
+    #local-filter { 
+      width: 100%; 
+      background: #282828 !important; 
+      border: 1px solid transparent !important; 
+      color: #ffffff !important; 
+      padding: 12px 16px; 
+      border-radius: 25px; 
+      font-size: 0.95rem; 
+      box-sizing: border-box; 
+    }
+    #local-filter:focus { 
+      border-color: #1db954 !important; 
+      outline: none; 
+    }
+    .playlist-meta {
+      padding: 0 20px;
+      color: #b3b3b3;
+      font-size: 0.85rem;
+    }
+    #local-tracks-container { 
+      height: calc(100vh - 290px) !important; 
+      overflow-y: auto !important; 
+      padding: 10px 15px !important; 
+      margin-bottom: 120px;
+      -webkit-overflow-scrolling: touch !important; 
+    }
+    #local-tracks-container::-webkit-scrollbar { 
+      width: 6px; 
+    }
+    #local-tracks-container::-webkit-scrollbar-thumb { 
+      background: #333; 
+      border-radius: 3px; 
+    }
+    .track-item { 
+      display: flex; 
+      align-items: center; 
+      background: #181818 !important; 
+      margin-bottom: 8px !important; 
+      padding: 14px 16px !important; 
+      border-radius: 8px !important; 
+      border: 1px solid #282828 !important; 
+    }
+    .track-item:active { 
+      background: #282828 !important; 
+    }
+    .track-item .track-meta { 
+      flex-grow: 1; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      white-space: nowrap; 
+      color: #ffffff !important; 
+      font-size: 0.95rem; 
+    }
+    .track-item .track-duration { 
+      color: #b3b3b3 !important; 
+      font-size: 0.85rem; 
+      margin-left: 10px; 
+    }
+    .player-controls-box { 
+      position: fixed; 
+      bottom: 0; 
+      left: 0; 
+      right: 0; 
+      background: #181818 !important; 
+      border-top: 1px solid #282828; 
+      padding: 15px 20px 30px 20px; 
+      box-shadow: 0 -5px 15px rgba(0,0,0,0.6); 
+      z-index: 999; 
+    }
+    .playback-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #b3b3b3;
+      font-size: 0.75rem;
+      margin-bottom: 10px;
+    }
+    .control-buttons {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+    }
+    .btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+    }
+    .btn svg { 
+      fill: #ffffff !important; 
+      width: 26px; 
+      height: 26px; 
+    }
+    .btn:active svg { 
+      fill: #1db954 !important; 
+    }
+    #ctrl-play-pause svg {
+      width: 40px;
+      height: 40px;
+      fill: #1db954 !important;
+    }
+  </style>
+</head>
+<body>
+
+    <div class="app-header">
+        <img src="assets/icon/favicon.png" class="app-logo" onerror="this.style.display='none';">
+        <h1>StheshMusic</h1>
+    </div>
+
+    <div class="search-box-container">
+        <input type="text" id="local-filter" placeholder="Search tracks...">
+    </div>
     
-    <link rel="icon" type="image/png" href="logo.png">
-    <link rel="apple-touch-icon" href="logo.png">
-    
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#121212">
-    
+    <div class="playlist-meta"><span id="local-count">0</span> tracks total loaded</div>
+
+    <div id="local-tracks-container">
+        <ul id="playlist-element" style="list-style: none; padding: 0; margin: 0;"></ul>
+    </div>
+
+    <audio id="audio-engine" preload="auto"></audio>
+
+    <div class="player-controls-box">
+        <div class="playback-bar">
+            <span id="time-current">0:00</span>
+            <span id="time-total">0:00</span>
+        </div>
+        <div class="control-buttons">
+            <button class="btn" id="ctrl-shuffle" title="Shuffle"><svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.45 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg></button>
+            <button class="btn" id="ctrl-prev" title="Previous Track"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+            <button class="btn" id="ctrl-play-pause"><svg id="svg-play-action" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+            <button class="btn" id="ctrl-next" title="Next Track"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6z"/></svg></button>
+            <button class="btn" id="ctrl-repeat" title="Repeat"><svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v3h12v-6h-2v4z"/></svg></button>
+        </div>
+    </div>
+
+    <script>
+        const internalTracks = [
+            "100 Bars- Big Zulu (Zk music video studio version.mp3",
+            "ANGISAFUNI.mp3",
+            "AZIJIKE LEZONKOMO. (feat. SHENGE WASEHLALANKOSI) [qJTnirABPUM].mp3",
+            "Abasemzini  feat  Jikijiki .mp3",
+            "Akasona isidakwa (feat. Shenge wasehlalankosi)_1759465434697.mp3",
+            "Anilwi Ngani (feat. Shenge)_1759466004283.mp3",
+            "Animdedel' Ahambe (feat. Shenge Wasehlalankosi & uMagumede Wenu)_1759466327520.mp3",
+            "Asisahetheki sdalo feat Shenge wasehlalankosi_1753801119381.mp3",
+            "Awung'shuthele (feat. Shenge Wasehlalankosi)_1756541452054.mp3",
+            "Ayaphi Amaphoyisa (feat. Shenge Wasehlalankosi & Msezane)_1756821848030.mp3",
+            "Ayibeyodwa (feat. Shenge wasehlalankosi)_1756541480896.mp3",
+            "Bazi Umuthi (feat. Shenge Wasehlalankosi)_1756553830254.mp3",
+            "Big Zulu - 150 Bars (Ke Hip Hop Dawg) [Official Audio].mp3",
+            "Big Zulu - 200 Bars (Official Music Video).mp3",
+            "Black-tee - Collide (Remake) .mp3",
+            "Dr MaVibes - Umlilo Ft Brvdley, Snymaan, Manny Yack & Blaq Diamond (Official Music Video).mp3",
+            "Dubai.mp3",
+            "Ethembeni (feat. Shenge waseHlalankosi)_1759465487831.mp3",
+            "ISISOKA (feat. Shenge wasehlalankosi & Prince phikela).mp3",
+            "IVELIHLUKANE.FT) SHENGE WASEHLALANKOSI.mp3",
+            "Ijuba (feat. Shenge wasehlalankosi)_1759465275324.mp3",
+            "Ikhehla mfana (feat. Shenge wasehlalankosi)_1759465723401.mp3",
+            "Inja nengulube (feat. Shenge waseHlalankosi)_1759465661661.mp3",
+            "Intenjena (feat. Simende)_1759578587452.mp3",
+            "Isgwili esinemali (feat. Shenge wasehlalankosi & Sne Ntuli)_1759465692701.mp3",
+            "Ispokwe sothando (feat. Shenge wasehlalankosi).mp3",
+            "Ithathe (feat. Shenge Wasehlalankosi) (Shenge Version)_1756541414214.mp3",
+            "KONKE KUHAMBA KAHLE feat..ShengeWasehlalankosi.mp3",
+            "Kudakwa iinceku.mp3",
+            "Kumbulwa Kwembeswa  feat  Maha Radebe   Mjolisi .mp3",
+            "Kuyaqala Kuyahlangana.mp3",
+            "Kuyoqhuma isililo (feat. Shenge wasehlalankosi).mp3",
+            "Kweminye imizi (feat. Shenge waseHlalankosi).mp3",
+            "Lomhlaba Kwenzenjani (feat. Shenge wasehlalankosi).mp3",
+            "Luyazenzela_1753739594028.mp3",
+            "Ma Africa (u X5 ft Shenge WaseHlalankosi) _1759466428600.mp3",
+            "Madlegijima - Ngifuna yona (Official Audio) ft. Shenge waseHlalankosi & Mnotho Majola_1759381323530.mp3",
+            "Memories.mp3",
+            "Mshinwemali Ft Zothando - Ngicela Uhambe.mp3",
+            "NGINIKELELA I EX YAMI (feat. SHENGE WASEHLALANKOSI).mp3",
+            "NGITHANDANA NEBHINCA (feat. Shenge wasehlalankosi)_1759381335430.mp3",
+            "Ngang'fisa (feat. Shenge Wasehlalankosi).mp3",
+            "Ngenziwa Ngabantu (feat. Shenge Wasehlalankosi).mp3",
+            "Ngibizelen' amaphoyisa (feat. Shenge wasehlalankosi).mp3",
+            "Ngicela ukuhlakanipha.mp3",
+            "Ngikheth' utshwala (feat. Shenge wasehlalankosi)_1751217060597.mp3",
+            "Ngishoda Ngenyoka.mp3",
+            "Ngithunjiwe.mp3",
+            "Ngixolele Mtanami.mp3",
+            "Ngiyakuthanda.mp3",
+            "Ngyajola mina (feat. Ushenge wasehlala nkosi).mp3",
+            "Ngzomthatha.mp3",
+            "Njengo Thunjana.mp3",
+            "Njengo Zahara_1759451288511.mp3",
+            "Ntencane, Shenge Wasehlalankosi, Zamambo Mkhize - USEYAKHALA PHAMBILI.mp3",
+            "Ogogo Benu (feat. Shenge Wasehlalankosi)_1759465951985.mp3",
+            "Phangandawo - Inomnikazi (feat. Thembani) (Official Audio).mp3",
+            "Sawubona wekukhuluma (feat. Shenge wasehlalankosi).mp3",
+            "Sengigowishe kwadlula  feat  Shenge wasehlalankosi .mp3",
+            "Shela  Pro-Tee s Gqom Remake .mp3",
+            "Sikhulekela umona (feat. Shenge wasehlalankosi)_1759465517912.mp3",
+            "Sithola uthando (feat. Shenge & MaGumede wenu) _1753739591888.mp3",
+            "Sminofu - Sajola Kamnandi_1757337282184.mp3",
+            "Sukani endleleni yami.mp3",
+            "Sulani Igama Lami (feat. Shenge WaseHlalankosi).mp3",
+            "Thonga lami (feat. Shenge waseHlalankosie)(1).mp3",
+            "Thungisani bangani feat. Shenge Wasehlalankosi_1759465833342.mp3",
+            "UNJINIYA (feat. SHENGE WASEHLALANKOSI).mp3",
+            "UZENZISOKA.FT)SHENGE WASEHLALANKOSI.mp3",
+            "Ubambo lwami feat  Mjolisi_1759415554904.mp3",
+            "Uchuku (feat. Shenge waseHlalankosi)_1759465769294.mp3",
+            "Umalume wenu (feat. Shenge wasehlalankosi).mp3",
+            "Umaqondana (feat. SHENGE WASEHLALANKOSI)_1759465255643.mp3",
+            "Umathandana wami (feat. Shenge wasehlalankosi)_1756541429420.mp3",
+            "Umsila webhubesi (feat. Shenge Wasehlalankosi).mp3",
+            "Umzukase (feat. Shenge Wasehlalankosi).mp3",
+            "Unewala (feat. Shenge waseHlalankosi & Masinga).mp3",
+            "Unkulunkulu (feat. Shenge Wasehlalankosi).mp3",
+            "Usbary wenu  feat  Londeka Shangase .mp3",
+            "Usengishiya Kanje (feat. Shenge Wasehlalankosi).mp3",
+            "Ushwebile  feat Mjolisi .mp3",
+            "Uthando luyiScam (feat. Shenge wasehlalankosi)_1759466042712.mp3",
+            "Utshwala  feat  Shenge Wasehlalankosi .mp3",
+            "Uyisela (feat. LIMIT NALA) (Remix)_1753739350561.mp3",
+            "Uyoncengwa Unyoko_1757763150780.mp3",
+            "Uzenz'iphoyisa.mp3",
+            "Uzobaleka  feat  Shenge Wasehlalankosi .mp3",
+            "Wayengenalutho.mp3",
+            "Wayesebone Abangcono (feat Shenge wasehlalankosi)_1759465216859.mp3",
+            "We Skhinkily.mp3",
+            "Yibanathi_Nkosi_Gospel_Gqom_by_Stheraman_-_Topic_320kbps.mp3",
+            "Yima kancane dali.mp3",
+            "Yimowakho Dali (u X5 ft Shenge WaseHlalankosi & Masothole) _1759466100912.mp3",
+            "amadodenu by Menzi.mp3",
+            "iDliso 2 (feat. Shenge Wasehlalankosi)_1759381317507.mp3",
+            "iVALENTiNE  feat  Shenge wasehlalankosi .mp3",
+            "iZindlu Zodaka (feat. Shenge Wasehlalankosi).mp3",
+            "intaba Zokhahlamba  feat  Shenge Wasehlalankosi  Mjolisi .mp3",
+            "saqala sadlala.mp3",
+            "uCapitec (feat. Shenge wasehlalankosi)_1759465811587.mp3",
+            "wamnika kanjani.mp3"
+        ];
+
+        const audio = document.getElementById('audio-engine');
+        const playlistElement = document.getElementById('playlist-element');
+        const localCount = document.getElementById('local-count');
+        const localFilter = document.getElementById('local-filter');
+        const ctrlPlayPause = document.getElementById('ctrl-play-pause');
+        const svgPlayAction = document.getElementById('svg-play-action');
+        const timeCurrent = document.getElementById('time-current');
+        const timeTotal = document.getElementById('time-total');
+
+        let allTracks = [];
+        let currentIndex = -1;
+
+        internalTracks.forEach((filename) => {
+            allTracks.push({
+                name: filename.replace(/\.[^/.]+$/, ""),
+                src: 'http://localhost/assets/' + encodeURIComponent(filename)
+            });
+        });
+
+        function renderPlaylist(tracksToRender) {
+            playlistElement.innerHTML = '';
+            localCount.textContent = tracksToRender.length;
+            tracksToRender.forEach((track) => {
+                const origIndex = allTracks.findIndex(t => t.src === track.src);
+                const li = document.createElement('li');
+                li.className = 'track-item';
+                li.innerHTML = `<div class="track-meta">${track.name}</div><div class="track-duration">••:••</div>`;
+                li.addEventListener('click', () => playTrack(origIndex));
+                playlistElement.appendChild(li);
+            });
+        }
+
+        function playTrack(index) {
+            if (index < 0 || index >= allTracks.length) return;
+            currentIndex = index;
+            audio.src = allTracks[currentIndex].src;
+            audio.play().catch(e => console.log("Playback interaction lock: ", e));
+            svgPlayAction.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        }
+
+        ctrlPlayPause.addEventListener('click', () => {
+            if (audio.paused) {
+                if (currentIndex === -1 && allTracks.length > 0) {
+                    playTrack(0);
+                } else {
+                    audio.play();
+                    svgPlayAction.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+                }
+            } else {
+                audio.pause();
+                svgPlayAction.innerHTML = '<path d="M8 5v14l11-7z"/>';
+            }
+        });
+
+        document.getElementById('ctrl-next').addEventListener('click', () => {
+            let next = currentIndex + 1;
+            if (next >= allTracks.length) next = 0;
+            playTrack(next);
+        });
+
+        document.getElementById('ctrl-prev').addEventListener('click', () => {
+            let prev = currentIndex - 1;
+            if (prev < 0) prev = allTracks.length - 1;
+            playTrack(prev);
+        });
+
+        audio.addEventListener('timeupdate', () => {
+            if (audio.duration && isFinite(audio.duration)) {
+                timeCurrent.textContent = formatTime(audio.currentTime);
+                timeTotal.textContent = formatTime(audio.duration);
+            }
+        });
+
+        function formatTime(secs) {
+            const m = Math.floor(secs / 60);
+            const s = Math.floor(secs % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        localFilter.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = allTracks.filter(t => t.name.toLowerCase().includes(query));
+            renderPlaylist(filtered);
+        });
+
+        renderPlaylist(allTracks);
+    </script>
+</body>
+</html>
