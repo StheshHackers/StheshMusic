@@ -72,7 +72,7 @@
         <div class="mobile-header">
             <div class="brand-section">
                 <div class="brand-title">
-                    <img src="logo.png" class="app-logo" onerror="this.style.display='none';">
+                    <img src="assets/icon/favicon.png" class="app-logo" onerror="this.style.display='none';">
                     <h1>StheshMusic</h1>
                 </div>
                 <input type="file" id="storage-grabber" multiple accept="audio/*" style="display: none;">
@@ -87,7 +87,7 @@
         </div>
         <div class="playlist-banner">
             <div class="playlist-art">
-                <img src="logo.png" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\' fill=\'%231db954\'><circle cx=\'50\' cy=\'50\' r=\'40\'/></svg>';">
+                <img src="assets/icon/favicon.png" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\' fill=\'%231db954\'><circle cx=\'50\' cy=\'50\' r=\'40\'/></svg>';">
             </div>
             <div class="playlist-info">
                 <h2>Local Files Package</h2>
@@ -100,7 +100,7 @@
         <audio id="audio-engine" preload="auto"></audio>
         <div class="player-upper-row">
             <div class="player-meta-display">
-                <img src="logo.png" class="player-mini-logo" onerror="this.style.display='none';">
+                <img src="assets/icon/favicon.png" class="player-mini-logo" onerror="this.style.display='none';">
                 <div class="track-details"><div class="track-title-display" id="display-title">No track selected</div></div>
             </div>
             <button class="btn" id="ctrl-mute">
@@ -267,7 +267,7 @@
             internalTracks.forEach((filename) => {
                 allTracks.push({
                     title: filename.replace(/\.[^/.]+$/, ""),
-                    src: 'music/' + encodeURIComponent(filename),
+                    src: 'assets/' + encodeURIComponent(filename),
                     tag: 'Offline Audio Track',
                     isBlob: false
                 });
